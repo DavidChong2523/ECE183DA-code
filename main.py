@@ -34,4 +34,4 @@ kin_out3 = NavigationOutput.NavigationOutput()
 s.add_robot(kinematics_model, (kin_out3,))
 
 # Finally to run the simulation
-s.run(max_duration=10)  # run 10sec, at the end of run, automatically do outputs.
+s.run(max_duration=None)  # run 10sec, at the end of run, automatically do outputs.

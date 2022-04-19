@@ -36,8 +36,9 @@ class Sim:
         t = 0
         if self._input_system is None:
             raise ImportError
-
-        while t < max_duration and not self._input_system.is_done():
+        
+        loop = not max_duration
+        while (loop) or (t < max_duration and not self._input_system.is_done()) :
             inpt = self._input_system.get_inputs(timestamp=t)
             assert_space(inpt, INPUT_SPACE)
 
