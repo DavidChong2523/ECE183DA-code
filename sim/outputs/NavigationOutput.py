@@ -77,6 +77,15 @@ def angle2image(angle):
 
 def sense(pos, angle, orig_image):
     sensor_pos = real2image(pos, orig_image.shape, xy=False)
+    #angle = angle2image(angle)
+
+    # rotate image to match angle 
+    # TEST THIS!!!!
+    rotate_matrix = cv2.getRotationMatrix2D(center=sensor_pos, angle=angle, scale=1)
+    orig_image = cv2.warpAffine(src=orig_image, M=rotate_matrix, dsize=(orig_image.shape[1], orig_image.shape[0]))
+
+    print(orig_image.shape)
+    #orig_image = rotation_mat(angle) @ orig_image
     sensor_dim_x = 1 # 1/2 inch by 1/2 inch
     sensor_dim_y = 1 
     srow, scol = int(sensor_pos[0]), int(sensor_pos[1])
@@ -145,7 +154,7 @@ class NavigationOutput(OutputSystem):
         sensor_array = [base_sensor_pos+i*sense_vec for i in [-4, -2, 0, 2, 4]]
 
         # array sensing
-        for i, sp in enumerate(sensor_array):
+        for i, sp in enumerate(sensor_array[::-1]):
             sp = (sp[0], sp[1])
             val = sense(sp, angle, orig_image)
             if(val == 0):
