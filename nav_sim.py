@@ -68,10 +68,26 @@ FramePerSec = pygame.time.Clock()
 displaysurface = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game")
 
-image = cv2.imread("line.png")
-image = cv2.resize(image, (500, 500), interpolation=cv2.INTER_LINEAR)
+image = cv2.imread("line2.png")
+print("image shape", image.shape)
+print(image[:50, :50])
+#image = cv2.resize(image, (500, 500), interpolation=cv2.INTER_LINEAR)
 image = ~image
 
 cv2.imshow("test", image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+def image2real(pix, image_shape):
+    row, col = pix
+    heigth, width = image_shape[0], image_shape[1]
+    real_x = col
+    real_y = height-row
+    return (real_x, real_y)
+
+def real2image(pos, image_shape):
+    x, y = pos
+    col = x
+    row = image_shape[0]-y
+    return (row, col)
+

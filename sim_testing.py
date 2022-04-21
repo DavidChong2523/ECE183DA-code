@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from sim.constants import *
 
 def rotation_mat(theta):
     c, s = np.cos(theta), np.sin(theta)
@@ -64,21 +65,40 @@ def real2image(pos, image_shape, xy=False):
 def angle2image(angle):
     return (2*np.pi - angle) % (2*np.pi)
     
-    
+def test():
+    image = cv2.imread("line.png")
+    image = cv2.resize(image, (500, 500), interpolation=cv2.INTER_LINEAR)
+    image = ~image
+    orig_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-if __name__ == "__main__":
-    image = np.zeros((500,500, 3))
-    for i in range(10):
-        angle = 0
-        angle = angle2image(0)
-        pos = (10, 10)
-        pos = real2image(pos, image.shape)
-        pos = (pos[1], pos[0])
-        image = draw_rect(image, (20, 40), pos, angle)
-        image = draw_line(image, 10, pos, angle)
-        cv2.imshow("test", image)
-        cv2.waitKey(0)
-    cv2.arrowedLine(image, (500, 0), (200, 400), (255, 255, 0))
-    cv2.imshow("test2", image)
+    pos = (200, 200)
+    pos = real2image(pos, image.shape, xy=True)
+    sensor_pos = (ROBOT.SENSOR_POS[0] + 200, ROBOT.SENSOR_POS[1] + 200)
+    sensor_pos = real2image(sensor_pos, image.shape, xy=True)
+    angle = 0
+    angle = angle2image(angle)
+
+    # simulate sensing
+    # rotate image opposite sensor angle
+    orig_image[int(sensor_pos[1])][int(sensor_pos[0])] = 1
+    sensor_dim_x = 1 # 1/2 inch by 1/2 inch
+    sensor_dim_y = 1 
+    scol, srow = int(sensor_pos[0]), int(sensor_pos[1])
+    r1, r2 = srow-sensor_dim_y, srow+sensor_dim_y
+    c1, c2 = scol-sensor_dim_x, scol+sensor_dim_x
+    sensed_array = orig_image[r1:r2, c1:c2]
+    sensed_value = np.max(sensed_array)
+    print(sensed_array)
+    #print(sensed_array.shape, scol, srow, sensor_dim_x, sensor_dim_y, r1, r2, c1, c2)
+    print(sensed_value)
+
+    image = draw_rect(image, (ROBOT.LENGTH, ROBOT.WIDTH), pos, angle)
+    image = draw_rect(image, (ROBOT.SENSOR_LENGTH, ROBOT.SENSOR_WIDTH), sensor_pos, angle, color=(255, 255, 0), thickness=2)
+    image = draw_line(image, 10, pos, angle)
+
+    cv2.imshow("tets", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    test()

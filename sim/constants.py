@@ -1,8 +1,8 @@
 from sim.formulation import STATE_SPACE
 
 class ROBOT:
-    LENGTH = 21                    # [m]
-    WIDTH = 14                      # [m]
+    LENGTH = 12                    # [m]
+    WIDTH = 18                     # [m]
     WHEEL_RADIUS = 6                # [m]
     FRONT_LIDAR_POS = [0.055, 0.0]    # [m]
     RIGHT_LIDAR_POS = [0.047, 0.015]    # [m]
