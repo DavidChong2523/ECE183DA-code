@@ -1,69 +1,119 @@
 import cv2
 import numpy as np
 from sim.constants import *
+import sim.utils as utils
 
+"""
+pos: numpy array [x, y] in real coords
+returns: numpy array [x, y] in image coords
+"""
+def real2image(pos):
+    pos[1] *= -1
+    return pos
+
+"""
+pos: numpy array [x, y] in image coords
+returns: numpy array [x, y] in real coords
+"""
+def image2real(pos):
+    pos[1] *= -1
+    return pos
+
+"""
+theta: angle in radians
+"""
 def rotation_mat(theta):
     c, s = np.cos(theta), np.sin(theta)
     rot = np.array([[c, -s], [s, c]])
     return rot
 
 """
-dim: (length, width)
-center: (x, y)
-angle: counterclockwise from x axis
+dim: (length, width) in image scale
+center: np array [x, y] in image coords
+angle: radians
+returns: vector of corner positions in image coords
 """
 def rotated_rect(dim, center, angle):
     l, w = dim
-    center = np.array([[center[0]], [center[1]]])
     # initial orientation parallel to x axis
-    vertices = [(l/2, w/2), (l/2, -w/2), (-l/2, -w/2), (-l/2, w/2)]
-    vertices = [np.array([[v[0]], [v[1]]]) for v in vertices]
+    vertices = [[l/2, w/2], [l/2, -w/2], [-l/2, -w/2], [-l/2, w/2]]
+    vertices = [np.array(v) for v in vertices]
     vertices = [rotation_mat(angle) @ v for v in vertices]
-    vertices = [v + center for v in vertices]
+    vertices = [real2image(v) + center for v in vertices]
     return vertices
 
+"""
+length: distance in image scale
+center: numpy array [x, y] in image coords
+angle: radians
+returns: vector of start and end positions in image coords
+"""
 def rotated_line(length, center, angle):
-    center = np.array([[center[0]], [center[1]]])
-    vertices = [(0, 0), (length, 0)]
-    vertices = [np.array([[v[0]], [v[1]]]) for v in vertices]
+    vertices = [np.array([0, 0]), np.array([length, 0])]
     vertices = [rotation_mat(angle) @ v for v in vertices]
-    vertices = [v + center for v in vertices]
+    vertices = [real2image(v) + center for v in vertices]
     return vertices
 
+"""
+dim, center, angle: same params as rotated_rect()
+"""
 def draw_rect(image, dim, center, angle, color=(255,0,0), thickness=1):
     vertices = rotated_rect(dim, center, angle)
-    vertices = [(int(v[0][0]), int(v[1][0])) for v in vertices]
+    vertices = [(int(v[0]), int(v[1])) for v in vertices]
     for i in range(4):
         cv2.line(image, vertices[i], vertices[(i+1)%4], color, thickness)
     return image
 
+"""
+length, center, angle: same params as rotated_line()
+"""
 def draw_line(image, length, center, angle, color=(0, 255, 0)):
     vertices = rotated_line(length, center, angle)
-    vertices = [(int(v[0][0]), int(v[1][0])) for v in vertices]
+    vertices = [(int(v[0]), int(v[1])) for v in vertices]
 
     cv2.arrowedLine(image, vertices[0], vertices[1], color)
     return image
-    
-### returns (x, y) format
-def image2real(pix, image_shape):
-    row, col = pix
-    heigth, width = image_shape[0], image_shape[1]
-    real_x = col
-    real_y = height-row
-    return (real_x, real_y)
 
-### returns (row, col) format
-def real2image(pos, image_shape, xy=False):
-    x, y = pos
-    col = x
-    row = image_shape[0]-y
-    if(xy):
-        return (col, row)
-    else:
-        return (row, col)
+"""
+center: numpy array [x, y] image coords
+angle: radians
+"""
+def rotate_image(image, center, angle):
+    center = np.rint(center)
+    center = (int(center[0]), int(center[1]))
+    angle = np.rad2deg(angle)
+    dims = (image.shape[1], image.shape[0])
 
-def angle2image(angle):
-    return (2*np.pi - angle) % (2*np.pi)
+    rotate_matrix = cv2.getRotationMatrix2D(center=center, angle=angle, scale=1)
+    image = cv2.warpAffine(src=image, M=rotate_matrix, dsize=dims)
+    return image
+
+"""
+pos: numpy array [x, y] in image coords
+angle: radians
+dim: (length, width) in image scale
+"""
+def sensor_reading(env, pos, angle, dim):
+    # rotate environment
+    rot = (np.pi/2) - angle
+    rot_env = rotate_image(env, pos, rot)
+
+    l, w = dim
+    c1, c2 = int(np.rint(pos[0]-w/2)), int(np.rint(pos[0]+w/2))
+    r1, r2 = int(np.rint(pos[1]-l/2)), int(np.rint(pos[1]+l/2))
+    sensed_area = rot_env[r1:r2+1, c1:c2+1, :]
+    sensed_area = cv2.cvtColor(sensed_area, cv2.COLOR_BGR2GRAY)
+    area = sensed_area.shape[0]*sensed_area.shape[1]
+    reading = np.count_nonzero(sensed_area) > area / 2
+    return reading
+
+"""
+real_dist: float representing dist in inches
+"""
+def image_scale(real_dist):
+    # scale: 1 px = 0.01 inches
+    scale = 1 / 0.01
+    return scale * real_dist
     
 def test():
     image = cv2.imread("line.png")
@@ -100,5 +150,59 @@ def test():
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def test2():
+    img = np.zeros((500, 600, 3), np.uint8)
+    img[:, 500:, 1] = 255
+    cv2.rectangle(img, (200, 200), (250, 300), color=(255, 0, 0), thickness=-1)
+    cv2.rectangle(img, (220, 220), (230, 230), color=(255, 255, 0), thickness=-1)
+    cv2.line(img, (100, 300), (100, 100), color=(0,0,255), thickness=1)
+    img = draw_line(img, 20, np.array([225, 225]), np.pi*3/2, color=(0, 255, 255))
+    
+    ang = np.pi/6
+    img = draw_rect(img, (10, 30), np.array([400, 400]), ang)
+    img = draw_line(img, 10, np.array([400, 400]), ang)
+    cv2.rectangle(img, (398, 398), (402, 402), color=(0, 255, 255), thickness = -1)
+    angle = (np.pi/2 - ang)*180/np.pi#45#np.pi/2
+    rotate_matrix = cv2.getRotationMatrix2D(center=(225, 225), angle=angle, scale=1)
+    orig_image = cv2.warpAffine(src=img, M=rotate_matrix, dsize=(img.shape[1], img.shape[0]))
+    print(sensor_reading(img, np.array([400.5, 400.5]), ang, (1,1)))
+    cv2.imshow("test", img)
+    cv2.imshow("test2", orig_image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def test3():
+    img = np.zeros((2,2,3), np.uint8)
+    img[0][0] = 255
+    new_img = cv2.resize(img, (200, 200), interpolation=cv2.INTER_NEAREST)
+    cv2.imshow("test", img)
+    cv2.imshow("test2", new_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def test4():
+    sensor_readings = [0, 0, 0, 0, 0]
+    IB_HEIGHT = 100
+    GRAY = (105, 105, 105)
+    info_bar = np.zeros((IB_HEIGHT, 500, 3), np.uint8)
+    info_bar[:,:,:] = GRAY
+    
+    # draw sensor readings
+    block_dim = 20
+    block_spacing = 10
+    block_y = 50
+    start_x = 50
+    for i, sr in enumerate(sensor_readings):
+        if(sr == 0):
+            color = (255, 100, 0)
+        else:
+            color = (0, 150, 255)
+        block_x = start_x + i*(block_dim+block_spacing)
+        top_left = (block_x-block_dim//2, block_y-block_dim//2)
+        bot_right = (block_x+block_dim//2, block_y+block_dim//2)
+        cv2.rectangle(info_bar, top_left, bot_right, color, -1)
+    cv2.imshow("test2", info_bar)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 if __name__ == "__main__":
-    test()
+    test4()

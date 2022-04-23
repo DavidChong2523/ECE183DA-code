@@ -5,7 +5,7 @@ from sim.inputs import FileInput, KeyboardInput, JoystickInput
 from sim.outputs import FileOutput, GraphOutput, AnimationOutput, NavigationOutput
 from sim.robots import NOPModel, KinematicsModel
 
-
+import cv2
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 logging.basicConfig(level=LOGLEVEL)
 
@@ -21,11 +21,13 @@ s.set_input(i)  # specify inputs to run
 
 # Create instance of robots and corresponding output methods.
 # each robot can have multiple output system
-
-kinematics_model = KinematicsModel()
+image = cv2.imread("line.png")
+image = ~image
+kinematics_model = KinematicsModel(image)
 #kin_out1 = FileOutput('test_kinematics.csv')
 #kin_out2 = GraphOutput(figname="test_kinematics.png")
-kin_out3 = NavigationOutput.NavigationOutput()
+
+kin_out3 = NavigationOutput.NavigationOutput(kinematics_model, image)
 
 # if you like to output in several different ways
 # nop_out2 = GraphOutput()
