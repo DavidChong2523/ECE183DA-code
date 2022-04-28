@@ -7,7 +7,7 @@ class ROBOT:
     LENGTH = 12                     # [in]
     WIDTH = 18                      # [in]
     WHEEL_RADIUS = 6                # [in]
-    SERVO_SPEED = 13.6/2            # rad/s, 13.6 rad/s no load, nominal speed ~1/2
+    SERVO_SPEED = 2#13.6/2            # rad/s, 13.6 rad/s no load, nominal speed ~1/2
 
     # pos of middle sensor
     SENSOR_POS = np.array([8.5, -10.75])      # [in]
@@ -28,7 +28,7 @@ class ENVIRONMENT:
     # 1 pixel == 0.01 in
     IMAGE_SCALE = 1 / 0.01
     INPUT_SCALE = 1 / 1
-    DISPLAY_SCALE = 1 / 1
+    DISPLAY_SCALE = 1 / (1/5)
     INITIAL_ROBOT_STATE = [0.0 for k in STATE_SPACE]
 
 

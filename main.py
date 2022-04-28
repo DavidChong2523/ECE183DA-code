@@ -21,7 +21,7 @@ s.set_input(i)  # specify inputs to run
 
 # Create instance of robots and corresponding output methods.
 # each robot can have multiple output system
-image = cv2.imread("line.png")
+image = cv2.imread("line2.png")
 image = ~image
 kinematics_model = KinematicsModel(image)
 #kin_out1 = FileOutput('test_kinematics.csv')

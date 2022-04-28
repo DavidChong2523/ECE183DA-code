@@ -172,11 +172,29 @@ def test2():
     cv2.destroyAllWindows()
 
 def test3():
-    img = np.zeros((2,2,3), np.uint8)
-    img[0][0] = 255
-    new_img = cv2.resize(img, (200, 200), interpolation=cv2.INTER_NEAREST)
-    cv2.imshow("test", img)
+    img = np.zeros((4,4,3), np.uint8)
+    img[0][1] = 255
+    img[1][0] = 255
+    img[2][0] = 255
+    img[3][0] = 255
+    cols = img.shape[1]
+    rows = img.shape[0]
+    src = img
+    for i in range(5):
+        src = cv2.pyrUp(src, dstsize=(2 * src.shape[1], 2 * src.shape[0]))
+    src = cv2.threshold(src, 1, 255, cv2.THRESH_BINARY)[1]
+    new_img = cv2.resize(img, (200, 200), interpolation=cv2.INTER_LINEAR)
+    new_img2 = cv2.resize(img, (200, 200), interpolation=cv2.INTER_CUBIC)
+    new_img3 = cv2.resize(img, (200, 200), interpolation=cv2.INTER_LANCZOS4)
+    new_img3 = cv2.threshold(new_img2, 10, 255, cv2.THRESH_BINARY)[1]
+    new_img4 = cv2.threshold(new_img, 10, 255, cv2.THRESH_BINARY)[1]
+    test_img = cv2.resize(img, (200, 200), interpolation=cv2.INTER_NEAREST)
+    print(new_img3)
+    cv2.imshow("test", new_img4)
     cv2.imshow("test2", new_img)
+    cv2.imshow("test3", new_img2)
+    cv2.imshow("test4", new_img3)
+    cv2.imshow("src", src)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -205,4 +223,4 @@ def test4():
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 if __name__ == "__main__":
-    test4()
+    test3()

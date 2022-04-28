@@ -56,11 +56,13 @@ class NavigationOutput(OutputSystem):
         
         display_image = self.image.copy()
 
-        # draw robot
+        # upscale region around robot
         DIR_LEN = 10 
         image_pos = utils.env2image(np.array([x, y]), self.robot.image_start)
         image_len = ENVIRONMENT.DISPLAY_SCALE * ROBOT.LENGTH
         image_width = ENVIRONMENT.DISPLAY_SCALE * ROBOT.WIDTH
+
+        # draw robot
         display_image = utils.draw_rect(display_image, (image_len, image_width), image_pos, theta)
         display_image = utils.draw_line(display_image, DIR_LEN, image_pos, theta)
 
