@@ -49,6 +49,7 @@ class NavigationOutput(OutputSystem):
         return info_bar
 
     def display(self, state, inpt, outpt, timestamp):
+        pygame.event.pump()
         x = state[ROBOT.I_X]
         y = state[ROBOT.I_Y]
         theta = state[ROBOT.I_THETA]
