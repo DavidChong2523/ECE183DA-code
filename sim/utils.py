@@ -88,6 +88,7 @@ def rotate_image(image, center, angle):
     return image
 
 """
+// NOT CURRENTLY env: grayscale image [0, 255]
 pos: numpy array [x, y] in image coords
 angle: radians
 dim: (length, width) in image scale
@@ -102,7 +103,7 @@ def sensor_reading(env, pos, angle, dim, noise=0):
     l, w = dim
     c1, c2 = int(np.rint(pos[0]-w/2)), int(np.rint(pos[0]+w/2))
     r1, r2 = int(np.rint(pos[1]-l/2)), int(np.rint(pos[1]+l/2))
-    sensed_area = rot_env[r1:r2+1, c1:c2+1, :]
+    sensed_area = rot_env[r1:r2+1, c1:c2+1]
     sensed_area = cv2.cvtColor(sensed_area, cv2.COLOR_BGR2GRAY)
 
     area = sensed_area.shape[0]*sensed_area.shape[1]    

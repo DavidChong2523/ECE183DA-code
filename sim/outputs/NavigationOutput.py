@@ -84,6 +84,7 @@ class NavigationOutput(OutputSystem):
         #display_image = cv2.cvtColor(display_image, cv2.COLOR_BGR2RGB)
         display_image = cv2.rotate(display_image, cv2.ROTATE_90_CLOCKWISE)
         display_image = cv2.flip(display_image, 1)
+        display_image = cv2.resize(display_image, (HEIGHT, WIDTH))
         surface = pygame.surfarray.make_surface(display_image)
         displaysurface.fill((0,0,0))
         displaysurface.blit(surface, (0, 0))

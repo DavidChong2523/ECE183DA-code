@@ -1,11 +1,9 @@
 import numpy as np
 import cv2 as cv
-# Create a black image
-img = np.zeros((8,8,3), np.uint8)
 
-cv.ellipse(img,(4,4),(2,1),45,0,360,(255, 255, 0),-1)
+from sim.environment import LineEnv
 
-img = cv.resize(img, (512, 512), interpolation=cv.INTER_NEAREST)
-cv.imshow("test", img)
-cv.waitKey(0)
-cv.destroyAllWindows()
+a = LineEnv.LineEnv("line3.png")
+#img = cv.cvtColor(a.image, cv.COLOR_BGR2GRAY)
+#a.simulate_dirt(img, 0.001, 1, 10)
+

@@ -22,7 +22,7 @@ class ROBOT:
     I_SENSE = 0
 
     # sensor noise probability
-    S_NOISE = 0.01
+    S_NOISE = 0.1
 
 class ENVIRONMENT:
     LENGTH = 1.0    # [m]
