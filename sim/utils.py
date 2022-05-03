@@ -91,8 +91,10 @@ def rotate_image(image, center, angle):
 pos: numpy array [x, y] in image coords
 angle: radians
 dim: (length, width) in image scale
+noise: float [0, 1], probability of flipping the sensor reading
+returns: bool, True if line sensed, False otherwise
 """
-def sensor_reading(env, pos, angle, dim):
+def sensor_reading(env, pos, angle, dim, noise=0):
     # rotate environment
     rot = (np.pi/2) - angle
     rot_env = rotate_image(env, pos, rot)
@@ -102,8 +104,14 @@ def sensor_reading(env, pos, angle, dim):
     r1, r2 = int(np.rint(pos[1]-l/2)), int(np.rint(pos[1]+l/2))
     sensed_area = rot_env[r1:r2+1, c1:c2+1, :]
     sensed_area = cv2.cvtColor(sensed_area, cv2.COLOR_BGR2GRAY)
-    area = sensed_area.shape[0]*sensed_area.shape[1]
+
+    area = sensed_area.shape[0]*sensed_area.shape[1]    
     reading = np.count_nonzero(sensed_area) > area / 2
+
+    # add noise to reading
+    if(np.random.uniform() < noise):
+        reading = not reading
+
     return reading
 
 """

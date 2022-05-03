@@ -86,7 +86,7 @@ class KinematicsModel(RobotSystem):
             image_len = ENVIRONMENT.DISPLAY_SCALE * ROBOT.SENSOR_LENGTH
             image_width = ENVIRONMENT.DISPLAY_SCALE * ROBOT.SENSOR_WIDTH
             
-            reading = utils.sensor_reading(self.env, image_pos, theta, (image_len, image_width))
+            reading = utils.sensor_reading(self.env, image_pos, theta, (image_len, image_width), noise=ROBOT.S_NOISE)
             sensor_readings.append(reading)
 
         self.outpt[ROBOT.I_SENSE] = sensor_readings

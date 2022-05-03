@@ -21,6 +21,9 @@ class ROBOT:
     I_THETA = 2
     I_SENSE = 0
 
+    # sensor noise probability
+    S_NOISE = 0.01
+
 class ENVIRONMENT:
     LENGTH = 1.0    # [m]
     WIDTH = 1.0     # [m]
