@@ -1,6 +1,7 @@
 from sim.robots.RobotSystem import *
 import sim.utils as utils
 import numpy as np
+import collections
 
 class KinematicsModel(RobotSystem):
     def __init__(self, environment):
@@ -13,12 +14,23 @@ class KinematicsModel(RobotSystem):
         # numpy array [x, y] image coords
         self.image_start = np.array([100, 100])
         self.env = environment
-        
+
+        # pid control
+        self.n = 1
+        self.pid_history = 0
+        self.prev_reading = 0
+        self.pid_readings = collections.deque(maxlen=5)
+
     def drive(self, inpt, timestamp):
         """drive the robot to the next state
         :param inpt: left, right wheel velocities
         :return full state feedback"""
         self.inpt = tuple(ROBOT.SERVO_SPEED * i for i in inpt)
+        
+        # DEBUG
+        if(not all([i == 0 for i in self.outpt[ROBOT.I_SENSE]])):
+            self.inpt = self.pid_control()
+
         self._kinematics_model(timestamp-self._t_minus_1)
         self._t_minus_1 = timestamp
         return self.state
@@ -27,6 +39,29 @@ class KinematicsModel(RobotSystem):
         """generate the sensor reading"""
         self._sensor_model()
         return self.outpt
+
+    def pid_control(self):
+        readings = self.outpt[ROBOT.I_SENSE]
+        inpt = [0.75, 0.75]
+        curr_p = sum([(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)])
+        self.pid_readings.append(curr_p)
+        # moving average
+        p = sum(self.pid_readings) / len(self.pid_readings)
+        print("CURR P", curr_p, "AVG P", p)
+
+        self.pid_history += p
+        i = self.pid_history
+
+        d = self.prev_reading - p# - self.prev_reading
+        self.prev_reading = p
+
+        pid = 0.1*p + 0.005*i + 0.1*d
+        
+        inpt[0] += pid
+        inpt[1] -= pid
+        return inpt
+
+
 
     """
     https://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf
