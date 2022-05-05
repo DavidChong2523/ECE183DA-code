@@ -22,7 +22,7 @@ class ROBOT:
     I_SENSE = 0
 
     # sensor noise probability
-    S_NOISE = 0.1
+    S_NOISE = 0.001
 
 class ENVIRONMENT:
     LENGTH = 1.0    # [m]
@@ -31,7 +31,7 @@ class ENVIRONMENT:
     # 1 pixel == 0.01 in
     IMAGE_SCALE = 1 / 0.01
     INPUT_SCALE = 1 / 1
-    DISPLAY_SCALE = 1 / (1/5)
+    DISPLAY_SCALE = 1 / (1/8)
     INITIAL_ROBOT_STATE = [0.0 for k in STATE_SPACE]
 
 
