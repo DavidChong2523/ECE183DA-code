@@ -12,11 +12,12 @@ class LineEnv():
         self.image = cv2.imread(fname)
         self.image = self.initialize_env(self.image)
 
-        degraded = self.degrade_line(self.image, 2, deg_type=1)
-        dirt = self.simulate_dirt_and_grass(degraded, 0.01, 5, 6, area_type=0, material=0)
-        grass = self.simulate_dirt_and_grass(self.image, 0.001, 5, 60, area_type=0, material=1)
+        #degraded = self.degrade_line(self.image, 2, deg_type=1)
+        degraded = self.image
+        dirt = self.simulate_dirt_and_grass(degraded, 0.00, 20, 50, area_type=0, material=0)
+        grass = self.simulate_dirt_and_grass(self.image, 0.00, 5, 10, area_type=0, material=1)
         self.image = dirt | grass
-
+        
         self.image = cv2.cvtColor(self.image, cv2.COLOR_GRAY2BGR)
 
 

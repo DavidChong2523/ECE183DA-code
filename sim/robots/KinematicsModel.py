@@ -16,10 +16,11 @@ class KinematicsModel(RobotSystem):
         self.env = environment
 
         # pid control
+        self.last_reading_time = 0
         self.n = 1
         self.pid_history = 0
         self.prev_reading = 0
-        self.pid_readings = collections.deque(maxlen=5)
+        self.pid_readings = collections.deque(maxlen=1)
 
     def drive(self, inpt, timestamp):
         """drive the robot to the next state
@@ -27,9 +28,8 @@ class KinematicsModel(RobotSystem):
         :return full state feedback"""
         self.inpt = tuple(ROBOT.SERVO_SPEED * i for i in inpt)
         
-        # DEBUG
-        if(not all([i == 0 for i in self.outpt[ROBOT.I_SENSE]])):
-            self.inpt = self.pid_control()
+        # pid control
+        self.inpt = self.pid_control()
 
         self._kinematics_model(timestamp-self._t_minus_1)
         self._t_minus_1 = timestamp
@@ -40,14 +40,25 @@ class KinematicsModel(RobotSystem):
         self._sensor_model()
         return self.outpt
 
+    """
+    high score: inpt = [5,5], pid = 1*p + 0.5*i + 0*d
+    prev vals: inpt = [0.75, 0.75], pid = 0.4p + 0.1*i
+    """
     def pid_control(self):
         readings = self.outpt[ROBOT.I_SENSE]
-        inpt = [0.75, 0.75]
+        if(not any(readings)):
+            self.last_reading_time += 1
+        else:
+            self.last_reading_time = 0
+        
+        # inpt = vel / ROBOT.WHEEL_RADIUS, vel = 12 in/s
+        inpt = [12/ROBOT.WHEEL_RADIUS, 12/ROBOT.WHEEL_RADIUS]
+        #inpt = [2, 2]
         curr_p = sum([(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)])
         self.pid_readings.append(curr_p)
         # moving average
         p = sum(self.pid_readings) / len(self.pid_readings)
-        print("CURR P", curr_p, "AVG P", p)
+        #print("CURR P", curr_p, "AVG P", p)
 
         self.pid_history += p
         i = self.pid_history
@@ -55,13 +66,22 @@ class KinematicsModel(RobotSystem):
         d = self.prev_reading - p# - self.prev_reading
         self.prev_reading = p
 
-        pid = 0.1*p + 0.005*i + 0.1*d
+        pid = 1*p +0.5*i + 0.1*d
         
+        # sensor offset
+        inpt[0] += (9*pid)/ROBOT.WHEEL_RADIUS#pid#np.sign(pid)*0.2
+        inpt[1] += (9*pid)/ROBOT.WHEEL_RADIUS#pid#np.sign(pid)*0.2
+
         inpt[0] += pid
         inpt[1] -= pid
+
+        print("PID:", pid, "INPT:", inpt)
+
+        # Manual control
+        if(sum(self.pid_readings) == 0 and self.last_reading_time > 10):
+            return self.inpt
+
         return inpt
-
-
 
     """
     https://www.cs.columbia.edu/~allen/F17/NOTES/icckinematics.pdf
@@ -98,18 +118,24 @@ class KinematicsModel(RobotSystem):
         self.state[ROBOT.I_Y] = update[1]
         self.state[ROBOT.I_THETA] = update[2]
 
-        def rotation_mat(theta):
-            c, s = np.cos(theta), np.sin(theta)
-            rot = np.array([[c, -s], [s, c]])
-            return rot
+        # simulate noise
+        self.actuation_noise()
 
-        angle = np.array([np.cos(theta), np.sin(theta)])
-        pos = np.array([x, y])
-        rot_mat = rotation_mat(-np.pi/2)
-        sensor_state = pos + ROBOT.SENSOR_POS[0]*angle + ROBOT.SENSOR_POS[1]*(rot_mat@angle.reshape((2,1)).reshape((2,)))
-        #print(self.state)
-        self.state[3] = float(sensor_state[0])
-        self.state[4] = float(sensor_state[1])
+    def actuation_noise(self):
+        trans_prob = ROBOT.TRANS_NOISE
+        rot_prob = ROBOT.ROT_NOISE
+        trans_mag = ROBOT.TRANS_MAG
+        rot_mag = ROBOT.ROT_MAG
+        
+        if(np.random.uniform() < trans_prob):
+            x_noise = np.random.uniform(low=-trans_mag, high=trans_mag)
+            y_noise = np.random.uniform(low=-trans_mag, high=trans_mag)
+            self.state[ROBOT.I_X] += x_noise
+            self.state[ROBOT.I_Y] += y_noise
+        if(np.random.uniform() < rot_prob):
+            rot_noise = np.random.uniform(low=-rot_mag, high=rot_mag)
+            self.state[ROBOT.I_THETA] = (self.state[ROBOT.I_THETA] + rot_noise) % (2*np.pi)
+
         
     def _sensor_model(self):
         """TODO: Your sensor equations here"""

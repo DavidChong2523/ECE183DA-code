@@ -10,7 +10,7 @@ import cv2
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 logging.basicConfig(level=LOGLEVEL)
 
-s = Sim()    # Create instance of Robot testing system
+s = Sim(suppress_info=True)    # Create instance of Robot testing system
 
 # Create instance of inputs system.
 # You can only have one type of inputs per test
@@ -22,7 +22,7 @@ s.set_input(i)  # specify inputs to run
 
 # Create instance of robots and corresponding output methods.
 # each robot can have multiple output system
-image = LineEnv.LineEnv("line4.png")
+image = LineEnv.LineEnv("line_4ft_turn.png")
 image = image.image
 kinematics_model = KinematicsModel(image)
 #kin_out1 = FileOutput('test_kinematics.csv')
