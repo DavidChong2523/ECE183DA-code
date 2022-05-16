@@ -7,10 +7,12 @@ class ROBOT:
     LENGTH = 12                     # [in]
     WIDTH = 18                      # [in]
     WHEEL_RADIUS = 6                # [in]
+    AXLE_POS = 6                    # [in]
+    WHEEL_SPACING = 18
     SERVO_SPEED = 2#13.6/2            # rad/s, 13.6 rad/s no load, nominal speed ~1/2
 
     # pos of middle sensor
-    SENSOR_POS = np.array([6.5, -9.75])      # [in]
+    SENSOR_POS = np.array([AXLE_POS+2, -9.75])      # [in]
     SENSOR_LENGTH = 0.5             # [in]
     SENSOR_WIDTH = 0.5              # [in]
     SENSOR_SEP = 0.25               # [in]

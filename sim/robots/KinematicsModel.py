@@ -41,9 +41,21 @@ class KinematicsModel(RobotSystem):
         return self.outpt
 
     """
-    high score: inpt = [5,5], pid = 1*p + 0.5*i + 0*d
-    prev vals: inpt = [0.75, 0.75], pid = 0.4p + 0.1*i
+    convert forward velocity and angular velocity to wheel angular velocities for differential drive
+    linear velocity: https://stackoverflow.com/questions/29226752/differential-drive-robots-converting-wheel-speeds-to-lin-ang-velocities
     """
+    def velocity_to_input(self, vel, omega):
+        # see kinematics function for conversion derivation
+        wheel_vel_sum = 2*vel / ROBOT.WHEEL_RADIUS # vel_r + vel_l
+        wheel_vel_diff = omega * ROBOT.WHEEL_SPACING # vel_r - vel_l
+
+        vel_r = 0.5 * (wheel_vel_sum + wheel_vel_diff)
+        vel_l = wheel_vel_sum - vel_r
+        
+        # not currently converting to input
+        return (vel_r, vel_l)
+
+
     def pid_control(self):
         readings = self.outpt[ROBOT.I_SENSE]
         if(not any(readings)):
@@ -51,34 +63,41 @@ class KinematicsModel(RobotSystem):
         else:
             self.last_reading_time = 0
         
-        # inpt = vel / ROBOT.WHEEL_RADIUS, vel = 12 in/s
-        inpt = [12/ROBOT.WHEEL_RADIUS, 12/ROBOT.WHEEL_RADIUS]
-        #inpt = [2, 2]
-        curr_p = sum([(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)])
+        LINEAR_VEL = 12 # in/s
+
+        def sensor_to_vel(reading_pos):
+            # quadratic scale
+            omega = 1*(reading_pos**2) + 0*reading_pos
+            return omega
+
+        values = [sensor_to_vel(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)]
+        curr_p = sum(values) / len(values)
+
         self.pid_readings.append(curr_p)
         # moving average
         p = sum(self.pid_readings) / len(self.pid_readings)
-        #print("CURR P", curr_p, "AVG P", p)
-
+        
         self.pid_history += p
         i = self.pid_history
 
         d = self.prev_reading - p# - self.prev_reading
         self.prev_reading = p
 
-        pid = 1*p +0.5*i + 0.1*d
+        # pid is angular velocity
+        pid = 0.2*p +0.00*i + 0*d
         
         # sensor offset
-        inpt[0] += (9*pid)/ROBOT.WHEEL_RADIUS#pid#np.sign(pid)*0.2
-        inpt[1] += (9*pid)/ROBOT.WHEEL_RADIUS#pid#np.sign(pid)*0.2
+        offset_vel = LINEAR_VEL# - ROBOT.WHEEL_SPACING*pid
 
-        inpt[0] += pid
-        inpt[1] -= pid
+        inpt = self.velocity_to_input(offset_vel, pid)
 
-        print("PID:", pid, "INPT:", inpt)
+        print("PID:", pid, "INPT:", inpt)#, "VALUES:", values)
 
         # Manual control
-        if(sum(self.pid_readings) == 0 and self.last_reading_time > 10):
+        if((sum(self.pid_readings) == 0 and self.last_reading_time > 1) or False):
+            # direct velocity
+            self.inpt = (self.inpt[0], self.inpt[1])
+            #return self.velocity_to_input(20, np.pi/12)
             return self.inpt
 
         return inpt
@@ -98,13 +117,17 @@ class KinematicsModel(RobotSystem):
         y = self.state[ROBOT.I_Y]
         theta = self.state[ROBOT.I_THETA]
 
+        # convert from center of robot to center of axle
+        axle_pos = np.array([x, y]) + ROBOT.AXLE_POS * np.array([np.cos(theta), np.sin(theta)])
+        x, y = axle_pos[0], axle_pos[1]
+        
         if(vel_l == vel_r):
             curr_state = np.array([x, y, theta])
             unit_vec = np.array([np.cos(theta), np.sin(theta), 0])
             update = (vel_l*delta_t) * unit_vec + curr_state
         else:
-            omega = (vel_r - vel_l) / ROBOT.WIDTH
-            R = (ROBOT.WIDTH / 2) * ((vel_l + vel_r) / (vel_r - vel_l))
+            omega = (vel_r - vel_l) / ROBOT.WHEEL_SPACING
+            R = (ROBOT.WHEEL_SPACING / 2) * ((vel_l + vel_r) / (vel_r - vel_l))
 
             ICC = [x - R*np.sin(theta), y + R*np.cos(theta)]
             coef = np.array([
@@ -113,6 +136,10 @@ class KinematicsModel(RobotSystem):
                 [0, 0, 1]
             ])
             update = coef @ np.array([x-ICC[0], y-ICC[1], theta]) + np.array([ICC[0], ICC[1], omega*delta_t])
+
+        # convert from center of axle to center of robot
+        center_pos = update[:2] + ROBOT.AXLE_POS * -np.array([np.cos(update[2]), np.sin(update[2])])
+        update[:2] = center_pos
 
         self.state[ROBOT.I_X] = update[0]
         self.state[ROBOT.I_Y] = update[1]
