@@ -2,25 +2,31 @@ from sim.robots.RobotSystem import *
 import sim.utils as utils
 import numpy as np
 import collections
+from sim.formulation import STATE_SPACE
 
 class KinematicsModel(RobotSystem):
     def __init__(self, environment):
         """init with a specific initial state (optional) """
         super().__init__()
-        self.state = ENVIRONMENT.INITIAL_ROBOT_STATE
+        self.state = [0.0 for k in STATE_SPACE] # ENVIRONMENT.INITIAL_ROBOT_STATE
         self.inpt = [0.0 for k in INPUT_SPACE]
         self.outpt = [[0.0] for k in OUTPUT_SPACE]
+        self.outpt[ROBOT.I_SENSE] = [False]*ROBOT.NUM_SENSORS
 
-        # numpy array [x, y] image coords
-        self.image_start = np.array([100, 100])
         self.env = environment
+        # numpy array [x, y] image coords
+        self.image_start = self.env.start - utils.real2image(ROBOT.SENSOR_POS)*ENVIRONMENT.DISPLAY_SCALE
 
         # pid control
+        self.reading_history = collections.deque(maxlen=10)
+        self.reading_history.append(self.outpt[ROBOT.I_SENSE])
+
         self.last_reading_time = 0
-        self.n = 1
+        self.pid_error_history = []
         self.pid_history = 0
         self.prev_reading = 0
-        self.pid_readings = collections.deque(maxlen=1)
+        self.time = 0
+
 
     def drive(self, inpt, timestamp):
         """drive the robot to the next state
@@ -57,47 +63,54 @@ class KinematicsModel(RobotSystem):
 
 
     def pid_control(self):
+        self.time += 1
+        LINEAR_VEL = 12 # in/s
+
         readings = self.outpt[ROBOT.I_SENSE]
-        if(not any(readings)):
+        self.reading_history.append(readings)
+
+        avg_reading = np.average(self.reading_history, axis=1)
+        if(not any(avg_reading)):
             self.last_reading_time += 1
         else:
             self.last_reading_time = 0
-        
-        LINEAR_VEL = 12 # in/s
 
         def sensor_to_vel(reading_pos):
             # quadratic scale
             omega = 1*(reading_pos**2) + 0*reading_pos
+            omega = omega * np.sign(reading_pos)
             return omega
 
-        values = [sensor_to_vel(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)]
-        curr_p = sum(values) / len(values)
+        values = [sensor_to_vel(i-ROBOT.NUM_SENSORS//2) for i, r in enumerate(readings) if r]
+        if(len(values) == 0):
+            p = 0
+        else:
+            p = np.average(values)
+        self.pid_error_history.append(p)
 
-        self.pid_readings.append(curr_p)
-        # moving average
-        p = sum(self.pid_readings) / len(self.pid_readings)
-        
         self.pid_history += p
         i = self.pid_history
 
-        d = self.prev_reading - p# - self.prev_reading
+        d = p - self.prev_reading #- p# - self.prev_reading
         self.prev_reading = p
 
         # pid is angular velocity
-        pid = 0.2*p +0.00*i + 0*d
+        pid = 0.15*p +0.00*i + 0.001*d
+        #pid = pid*-1
         
         # sensor offset
-        offset_vel = LINEAR_VEL# - ROBOT.WHEEL_SPACING*pid
+        offset_vel = LINEAR_VEL + ROBOT.WHEEL_SPACING*pid
 
         inpt = self.velocity_to_input(offset_vel, pid)
 
-        print("PID:", pid, "INPT:", inpt)#, "VALUES:", values)
+        #print("PID:", pid, "INPT:", inpt)#, "VALUES:", values)
 
         # Manual control
-        if((sum(self.pid_readings) == 0 and self.last_reading_time > 1) or False):
+        if((self.last_reading_time > 5) or self.finished() or False):
             # direct velocity
             self.inpt = (self.inpt[0], self.inpt[1])
             #return self.velocity_to_input(20, np.pi/12)
+            self.started = True
             return self.inpt
 
         return inpt
@@ -174,7 +187,7 @@ class KinematicsModel(RobotSystem):
             image_len = ENVIRONMENT.DISPLAY_SCALE * ROBOT.SENSOR_LENGTH
             image_width = ENVIRONMENT.DISPLAY_SCALE * ROBOT.SENSOR_WIDTH
             
-            reading = utils.sensor_reading(self.env, image_pos, theta, (image_len, image_width), noise=ROBOT.S_NOISE)
+            reading = utils.sensor_reading(self.env.image, image_pos, theta, (image_len, image_width), noise=ROBOT.S_NOISE)
             sensor_readings.append(reading)
 
         self.outpt[ROBOT.I_SENSE] = sensor_readings
@@ -191,5 +204,22 @@ class KinematicsModel(RobotSystem):
         sensor_array = [sensor_pos + (i-ROBOT.NUM_SENSORS//2)*sep*unit_vec for i in range(ROBOT.NUM_SENSORS)]
         return sensor_array
 
+    def get_error(self):
+        sensor_pos = self.get_sensor_positions()
+        pos = sensor_pos[len(sensor_pos) // 2]
+        image_pos = utils.env2image(pos, self.image_start)
+
+        c1, c2 = int(np.rint(image_pos[0]-1)), int(np.rint(image_pos[0]+1))
+        r1, r2 = int(np.rint(image_pos[1]-1)), int(np.rint(image_pos[1]+1))
+        sensed_area = self.env.error_map[r1:r2, c1:c2]
+        error = np.average(sensed_area) / ENVIRONMENT.DISPLAY_SCALE
+        return error
+
+    def finished(self):
+        sensor_pos = self.get_sensor_positions()
+        pos = sensor_pos[len(sensor_pos) // 2]
+        image_pos = utils.env2image(pos, self.image_start)
+
+        return np.linalg.norm(image_pos-self.env.end) < 5
 
 

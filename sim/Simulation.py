@@ -54,6 +54,8 @@ class Sim:
                 if not self.suppress_info:
                     logging.info("t: {}, inpt: {}, state: {}, outpt: {}".format(t, inpt, state, outpt))
 
+                
+
             t = self._step_forward(t)
 
         self.make_outputs()

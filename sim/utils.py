@@ -7,7 +7,7 @@ pos: numpy array [x, y] in real coords
 returns: numpy array [x, y] in image coords
 """
 def real2image(pos):
-    pos[1] *= -1
+    pos = pos * np.array([1, -1])
     return pos
 
 """
@@ -15,7 +15,7 @@ pos: numpy array [x, y] in image coords
 returns: numpy array [x, y] in real coords
 """
 def image2real(pos):
-    pos[1] *= -1
+    pos = pos * np.array([1, -1])
     return pos
 
 """
@@ -66,11 +66,11 @@ def draw_rect(image, dim, center, angle, color=(255,0,0), thickness=1):
 """
 length, center, angle: same params as rotated_line()
 """
-def draw_line(image, length, center, angle, color=(0, 255, 0)):
+def draw_line(image, length, center, angle, color=(0, 255, 0), thickness=1):
     vertices = rotated_line(length, center, angle)
     vertices = [(int(v[0]), int(v[1])) for v in vertices]
 
-    cv2.arrowedLine(image, vertices[0], vertices[1], color)
+    cv2.arrowedLine(image, vertices[0], vertices[1], color, thickness=thickness)
     return image
 
 """

@@ -8,14 +8,41 @@ class LineEnv():
     """
     image stored as BGR
     """
-    def __init__(self, fname):
+    def __init__(self, fname, noise_params=None):
         self.image = cv2.imread(fname)
+        self.start, self.end = self.identify_endpoints(self.image)
+        
         self.image = self.initialize_env(self.image)
+        self.line = self.image
+        self.error_map = self.generate_error_map(self.line)
 
+        """
+        noise_params: 
+        {
+            "dirt_prob": float,
+            "dirt_a1": float,
+            "dirt_a2": float,
+            "dirt_area": {0, 1},
+            "grass_prob": float,
+            "grass_a1": float,
+            "grass_a2": float,
+            "grass_area": {0, 1}
+        }
+        """
         #degraded = self.degrade_line(self.image, 2, deg_type=1)
         degraded = self.image
-        dirt = self.simulate_dirt_and_grass(degraded, 0.00, 20, 50, area_type=0, material=0)
-        grass = self.simulate_dirt_and_grass(self.image, 0.00, 5, 10, area_type=0, material=1)
+        dirt = self.simulate_dirt_and_grass(degraded, 
+                                            noise_params["dirt_prob"], 
+                                            noise_params["dirt_a1"], 
+                                            noise_params["dirt_a2"], 
+                                            area_type=noise_params["dirt_area"], 
+                                            material=0)
+        grass = self.simulate_dirt_and_grass(self.image, 
+                                             noise_params["grass_prob"], 
+                                             noise_params["grass_a1"], 
+                                             noise_params["grass_a2"], 
+                                             area_type=noise_params["grass_area"], 
+                                             material=1)
         self.image = dirt | grass
         
         self.image = cv2.cvtColor(self.image, cv2.COLOR_GRAY2BGR)
@@ -101,3 +128,30 @@ class LineEnv():
         
         return result
 
+    def generate_error_map(self, line):
+        """
+        https://answers.opencv.org/question/163561/looking-for-a-thinningskeletonizing-algorithm-with-opencv-in-python/#:~:text=You%20can%20simply%20pip%20install%20contrib%20with%3A%20pip,this%3A%20image%20%3D%20cv2.imread%28%22opencv.png%22%29%20thinned%20%3D%20cv2.ximgproc.thinning%28cv2.cvtColor%28image%2C%20cv2.COLOR_RGB2GRAY%29%29
+        """
+        dst = cv2.distanceTransform(line, cv2.DIST_L2, 5)
+        vals = sorted(np.unique(dst))
+        center = np.where(dst >= np.floor(vals[-2]), 255, 0).astype(np.uint8)
+        #center = cv2.ximgproc.thinning(line)
+        error_map = cv2.distanceTransform(~center, cv2.DIST_L2, 5)
+        return error_map
+        error_map = error_map / np.max(error_map) * 255
+        error_map = np.where(error_map == 0, 1, 0)
+        error_map = error_map.astype(np.uint8)*255
+        return error_map
+
+    """
+    line: output of generate_error_map
+    return: start position in (x, y) form
+    """
+    def identify_endpoints(self, line):
+        line = cv2.cvtColor(line, cv2.COLOR_BGR2HSV)
+        threshold = cv2.inRange(line, np.array([30, 0, 0]), np.array([90, 255, 255]))
+        pts = np.where(threshold != 0)
+        start = np.array([pts[1][0], pts[0][0]])
+        end = np.array([pts[1][-1], pts[0][-1]])
+        return start, end
+        
