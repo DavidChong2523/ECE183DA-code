@@ -5,7 +5,7 @@ import collections
 from sim.formulation import STATE_SPACE
 
 class KinematicsModel(RobotSystem):
-    def __init__(self, environment):
+    def __init__(self, environment, noise_params=None):
         """init with a specific initial state (optional) """
         super().__init__()
         self.state = [0.0 for k in STATE_SPACE] # ENVIRONMENT.INITIAL_ROBOT_STATE
@@ -16,6 +16,13 @@ class KinematicsModel(RobotSystem):
         self.env = environment
         # numpy array [x, y] image coords
         self.image_start = self.env.start - utils.real2image(ROBOT.SENSOR_POS)*ENVIRONMENT.DISPLAY_SCALE
+
+        # set noise params
+        if(noise_params):
+            ROBOT.TRANS_NOISE = noise_params["trans_noise"]
+            ROBOT.ROT_NOISE = noise_params["rot_noise"]
+            ROBOT.TRANS_MAG = noise_params["trans_mag"]
+            ROBOT.ROT_MAG = noise_params["rot_mag"]
 
         # pid control
         self.reading_history = collections.deque(maxlen=10)
@@ -168,10 +175,12 @@ class KinematicsModel(RobotSystem):
         rot_mag = ROBOT.ROT_MAG
         
         if(np.random.uniform() < trans_prob):
-            x_noise = np.random.uniform(low=-trans_mag, high=trans_mag)
-            y_noise = np.random.uniform(low=-trans_mag, high=trans_mag)
-            self.state[ROBOT.I_X] += x_noise
-            self.state[ROBOT.I_Y] += y_noise
+            direction = np.random.uniform(low=0, high=2*np.pi)
+            unit_vec = np.array([np.cos(direction), np.sin(direction)])
+            unit_vec = trans_mag * unit_vec
+            self.state[ROBOT.I_X] += unit_vec[0]
+            self.state[ROBOT.I_Y] += unit_vec[1]
+
         if(np.random.uniform() < rot_prob):
             rot_noise = np.random.uniform(low=-rot_mag, high=rot_mag)
             self.state[ROBOT.I_THETA] = (self.state[ROBOT.I_THETA] + rot_noise) % (2*np.pi)
@@ -214,6 +223,22 @@ class KinematicsModel(RobotSystem):
         sensed_area = self.env.error_map[r1:r2, c1:c2]
         error = np.average(sensed_area) / ENVIRONMENT.DISPLAY_SCALE
         return error
+
+    """
+    check whether robot is over a straight section or curved section of the line
+    return: True for straight, False for curved
+    """
+    def get_line_section(self):
+        sensor_pos = self.get_sensor_positions()
+        pos = sensor_pos[len(sensor_pos) // 2]
+        image_pos = utils.env2image(pos, self.image_start)
+        
+        c1, c2 = int(np.rint(image_pos[0]-1)), int(np.rint(image_pos[0]+1))
+        r1, r2 = int(np.rint(image_pos[1]-1)), int(np.rint(image_pos[1]+1))
+        straight_area = self.env.straight_dst[r1:r2, c1:c2]
+        curve_area = self.env.curve_dst[r1:r2, c1:c2]
+
+        return np.average(straight_area) <= np.average(curve_area)
 
     def finished(self):
         sensor_pos = self.get_sensor_positions()

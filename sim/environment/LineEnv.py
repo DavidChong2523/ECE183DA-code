@@ -15,6 +15,8 @@ class LineEnv():
         self.image = self.initialize_env(self.image)
         self.line = self.image
         self.error_map = self.generate_error_map(self.line)
+        self.straight_dst, self.curve_dst = self.detect_straight(self.line)
+        
 
         """
         noise_params: 
@@ -31,6 +33,7 @@ class LineEnv():
         """
         #degraded = self.degrade_line(self.image, 2, deg_type=1)
         degraded = self.image
+        """
         dirt = self.simulate_dirt_and_grass(degraded, 
                                             noise_params["dirt_prob"], 
                                             noise_params["dirt_a1"], 
@@ -43,6 +46,9 @@ class LineEnv():
                                              noise_params["grass_a2"], 
                                              area_type=noise_params["grass_area"], 
                                              material=1)
+        """
+        dirt = self.simulate_error(degraded, noise_params["dirt_prob"], material=0)
+        grass = self.simulate_error(degraded, noise_params["grass_prob"], material=1)
         self.image = dirt | grass
         
         self.image = cv2.cvtColor(self.image, cv2.COLOR_GRAY2BGR)
@@ -52,6 +58,22 @@ class LineEnv():
         image = ~image
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         return image
+
+    """
+    get mask of straight sections of lines and curved section
+    """
+    def detect_straight(self, image):
+        KERNEL_LEN = 25
+        horizontalStructure = cv2.getStructuringElement(cv2.MORPH_RECT, (KERNEL_LEN, 1))
+        horizontal = cv2.erode(image, horizontalStructure)
+        horizontal = cv2.dilate(horizontal, horizontalStructure)
+        curved = cv2.bitwise_xor(horizontal, image)
+
+        # invert colors - line is black, space is white
+        horizontal, curved = ~horizontal, ~curved
+        straight_dst = cv2.distanceTransform(horizontal, cv2.DIST_L2, 5)
+        curve_dst = cv2.distanceTransform(curved, cv2.DIST_L2, 5)
+        return straight_dst, curve_dst
 
     """
     degrade line color
@@ -127,6 +149,31 @@ class LineEnv():
             result = np.where(result != 0, line_color, image)
         
         return result
+
+    """
+    simulate dirt covering the line
+    image: white/black line mask with no noise
+    density: density of dirt centers, float [0, 1]
+    material: 0 - dirt, 1 - grass
+    """
+    def simulate_error(self, image, density, material=0):
+        if(material == 0):
+            mask = np.where(image != 0, image, 0)
+            background = image
+        elif(material == 1):
+            mask = np.where(image == 0, 255, 0).astype(np.uint8)
+            background = np.zeros(image.shape, np.uint8)
+
+        """
+        binomial distribution with n=1 equivalent to bernoulli distribution
+        https://stackoverflow.com/questions/47012474/bernoulli-random-number-generator
+        """
+        error_vals = np.random.binomial(size=image.shape, n=1, p=density)
+        error_vals = np.where(error_vals != 0, 255, 0).astype(np.uint8)
+        error_map = mask & error_vals
+
+        result = cv2.bitwise_xor(error_map, background)
+        return result 
 
     def generate_error_map(self, line):
         """

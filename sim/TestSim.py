@@ -29,7 +29,9 @@ class TestSim:
         :param max_duration: the maximum duration of test
         """
         t = 0
-        avg_error = 0
+        """
+        errors stored as tuple of (error, line_section)
+        """
         errors = []
         while(True):
             inpt = (0.0, 0.0)
@@ -37,7 +39,7 @@ class TestSim:
                 state = self.robot.drive(inpt, t)
                 assert_space(state, STATE_SPACE)
                                     
-                errors.append(self.robot.get_error())
+                errors.append((self.robot.get_error(), self.robot.get_line_section()))
 
                 outpt = self.robot.sense()
                 assert_space(outpt, OUTPUT_SPACE)
@@ -50,9 +52,9 @@ class TestSim:
 
             # check end of run
             if(self.fail()):
-                return None
+                return []
             elif(self.success()):
-                return np.average(errors)
+                return errors
 
             """
             if not self.suppress_info:
