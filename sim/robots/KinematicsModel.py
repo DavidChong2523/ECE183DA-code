@@ -25,7 +25,7 @@ class KinematicsModel(RobotSystem):
             ROBOT.ROT_MAG = noise_params["rot_mag"]
 
         # pid control
-        self.reading_history = collections.deque(maxlen=10)
+        self.reading_history = collections.deque(maxlen=1000)
         self.reading_history.append(self.outpt[ROBOT.I_SENSE])
 
         self.last_reading_time = 0
@@ -86,6 +86,8 @@ class KinematicsModel(RobotSystem):
             # quadratic scale
             omega = 1*(reading_pos**2) + 0*reading_pos
             omega = omega * np.sign(reading_pos)
+            # linear scale
+            #omega = reading_pos
             return omega
 
         values = [sensor_to_vel(i-ROBOT.NUM_SENSORS//2) for i, r in enumerate(readings) if r]
@@ -102,7 +104,10 @@ class KinematicsModel(RobotSystem):
         self.prev_reading = p
 
         # pid is angular velocity
-        pid = 0.15*p +0.00*i + 0.001*d
+        #pid = 0.15*p +0.00*i + 0.001*d
+        # pretty good: pid = 0.25*p + 0.010*i + 0.2*d#0.0126*d
+        # pretty good: pid = 0.10*p + 0.005*i + 0.05*d -> buffer size 1000
+        pid = 0.15 * p + 0.005*i - 0.05*d
         #pid = pid*-1
         
         # sensor offset
@@ -245,6 +250,6 @@ class KinematicsModel(RobotSystem):
         pos = sensor_pos[len(sensor_pos) // 2]
         image_pos = utils.env2image(pos, self.image_start)
 
-        return np.linalg.norm(image_pos-self.env.end) < 5
+        return np.linalg.norm(image_pos-self.env.end) < 10
 
 

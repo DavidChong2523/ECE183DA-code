@@ -40,11 +40,11 @@ def standardSim():
     """
 
     noise_params = {
-        "dirt_prob": 0.1,
-        "grass_prob": 0.1
+        "dirt_prob": 0.0,
+        "grass_prob": 0.15
     }
     robot_noise = {
-        "trans_noise": 1,
+        "trans_noise": 0,
         "rot_noise": 0,
         "trans_mag": 0.2,
         "rot_mag": 0
@@ -94,7 +94,7 @@ def autoSim():
         straight_errors = []
         curve_errors = []
         for k in range(REPEATS):
-            env = LineEnv.LineEnv("line_4ft_turn_labeled.png", env_noise_params)
+            env = LineEnv.LineEnv("line_3ft_turn_labeled.png", env_noise_params)
             robot = KinematicsModel(env, noise_params=robot_noise_params)
             #out = NavigationOutput.NavigationOutput(robot, env)
             s.set_robot(robot)
@@ -160,7 +160,7 @@ def plot3d():
     plt.show()
 
 if __name__ == "__main__":
-    #standardSim()
+    standardSim()
     #autoSim()
     #plot()
-    plot3d()
+    #plot3d()

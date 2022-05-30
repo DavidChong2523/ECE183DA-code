@@ -64,6 +64,7 @@ class Sim:
         if self._DT is None:
             t += TEST.DT
             time.sleep(TEST.DT)
+            #time.sleep(0.05)
         else:
             t = self._DT(t)
         return t
