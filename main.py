@@ -41,12 +41,12 @@ def standardSim():
 
     noise_params = {
         "dirt_prob": 0.0,
-        "grass_prob": 0.15
+        "grass_prob": 0.0
     }
     robot_noise = {
-        "trans_noise": 0,
+        "trans_noise": 0.1,
         "rot_noise": 0,
-        "trans_mag": 0.2,
+        "trans_mag": 1,
         "rot_mag": 0
     }
     env = LineEnv.LineEnv("line_3ft_turn_labeled.png", noise_params=noise_params)
