@@ -18,7 +18,7 @@ def sense(image):
 
 def test():
     # load image 
-    image = cv2.imread("line1.jpeg")
+    image = cv2.imread("ECE183DA-code\line_sensing\line5.jpeg")
     print(image.shape)
     # resize for easier visualization
     new_size = image.shape[:2]
