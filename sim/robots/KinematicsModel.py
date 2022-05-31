@@ -107,7 +107,8 @@ class KinematicsModel(RobotSystem):
         #pid = 0.15*p +0.00*i + 0.001*d
         # pretty good: pid = 0.25*p + 0.010*i + 0.2*d#0.0126*d
         # pretty good: pid = 0.10*p + 0.005*i + 0.05*d -> buffer size 1000
-        pid = 0.15 * p + 0.005*i - 0.05*d
+        #pid = 0.15 * p + 0.005*i - 0.05*d
+        pid = 0.15*p + 0.00*i + 0.001*d
         #pid = pid*-1
         
         # sensor offset
