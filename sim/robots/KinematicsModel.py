@@ -43,7 +43,11 @@ class KinematicsModel(RobotSystem):
     def pid_control(self):
         readings = self.outpt[ROBOT.I_SENSE]
         inpt = [0.75, 0.75]
-        curr_p = sum([(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)])
+        # curr_p = sum([(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(readings)])
+        curr_p = 0
+        indx_mult_arr = [-4, -1, 0, 1, 4]
+        for i, r in enumerate(readings):
+            curr_p += indx_mult_arr[i] * r
         self.pid_readings.append(curr_p)
         # moving average
         p = sum(self.pid_readings) / len(self.pid_readings)
@@ -60,7 +64,6 @@ class KinematicsModel(RobotSystem):
         inpt[0] += pid
         inpt[1] -= pid
         return inpt
-
 
 
     """
