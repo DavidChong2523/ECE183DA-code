@@ -4,10 +4,18 @@ import numpy as np
 tutorials: https://docs.opencv.org/4.x/d9/df8/tutorial_root.html
 """
 
+def line_detect(image):
+    line_de = cv2.imwr
+
 def sense(image):
     # range of opencv H channel is 0 to 180 (half of 0 to 360)
+<<<<<<< HEAD
+    BLUE_START = np.array([100, 0, 0])
+=======
     BLUE_START = np.array([90, 50, 0])
+>>>>>>> 8c341b8f5f2843e19fc59306f17467841cd3b1bc
     BLUE_END = np.array([150, 255, 255])
+
     
     # convert image from BGR to HSV
     image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -32,7 +40,11 @@ def sample(mask, size, num_samples):
 
 def test():
     # load image 
+<<<<<<< HEAD
+    image = cv2.imread("line_sensing\lp14.PNG")
+=======
     image = cv2.imread("lp23.PNG")
+>>>>>>> 8c341b8f5f2843e19fc59306f17467841cd3b1bc
     print(image.shape)
     # resize for easier visualization
     new_size = image.shape[:2]
