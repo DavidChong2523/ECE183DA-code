@@ -2,6 +2,7 @@ from sim.robots.RobotSystem import *
 import sim.utils as utils
 import numpy as np
 import collections
+import itertools
 from sim.formulation import STATE_SPACE
 
 class KinematicsModel(RobotSystem):
@@ -25,7 +26,7 @@ class KinematicsModel(RobotSystem):
             ROBOT.ROT_MAG = noise_params["rot_mag"]
 
         # pid control
-        self.reading_history = collections.deque(maxlen=1000)
+        self.reading_history = collections.deque(maxlen=3)
         self.reading_history.append(self.outpt[ROBOT.I_SENSE])
 
         self.last_reading_time = 0
@@ -76,7 +77,24 @@ class KinematicsModel(RobotSystem):
         readings = self.outpt[ROBOT.I_SENSE]
         self.reading_history.append(readings)
 
-        avg_reading = np.average(self.reading_history, axis=1)
+        """
+        avg_reading_1 = np.average(self.reading_history, axis=0)
+        avg_reading = np.rint(avg_reading_1)
+        #print("avg reading:", avg_reading_1, "rounded:", avg_reading)
+        """
+        
+        avg_reading = np.zeros(ROBOT.NUM_SENSORS)
+        reading_arr = np.array(self.reading_history)
+        for i in range(ROBOT.NUM_SENSORS):
+            groups = [sum(g) for k, g in itertools.groupby(reading_arr[:,i]) if k == 1]
+            if(len(groups) == 0):
+                avg_reading[i] = 0
+            else:
+                avg_reading[i] = max(groups) / reading_arr[:,i].shape[0]
+        avg_reading = np.rint(avg_reading)
+        #print("avg reading:", avg_reading, "rounded:", avg_reading)
+        
+
         if(not any(avg_reading)):
             self.last_reading_time += 1
         else:
@@ -87,10 +105,10 @@ class KinematicsModel(RobotSystem):
             omega = 1*(reading_pos**2) + 0*reading_pos
             omega = omega * np.sign(reading_pos)
             # linear scale
-            #omega = reading_pos
+            omega = 1*reading_pos
             return omega
 
-        values = [sensor_to_vel(i-ROBOT.NUM_SENSORS//2) for i, r in enumerate(readings) if r]
+        values = [sensor_to_vel(i-ROBOT.NUM_SENSORS//2)*r for i, r in enumerate(avg_reading) if r > 0]
         if(len(values) == 0):
             p = 0
         else:
@@ -108,11 +126,22 @@ class KinematicsModel(RobotSystem):
         # pretty good: pid = 0.25*p + 0.010*i + 0.2*d#0.0126*d
         # pretty good: pid = 0.10*p + 0.005*i + 0.05*d -> buffer size 1000
         #pid = 0.15 * p + 0.005*i - 0.05*d
-        pid = 0.15*p + 0.00*i + 0.001*d
+        #pid = 0.5*p + 0.00*i + 0.001*d
+        
+        #pid = 0.1*p + 0.005*i + 0.01*d
+        pid = 0.3*p + 0.0000*i + 0.001*d
+        pid = 0.15*p + 0.003*i + 0.05*d # this one for the run
+        #if(abs(pid) > 0.17):
+        #    pid = 0.17 * np.sign(0.17)
+        #print("pid:", pid)
+        
         #pid = pid*-1
         
         # sensor offset
-        offset_vel = LINEAR_VEL + ROBOT.WHEEL_SPACING*pid
+        if(pid <= 0):
+            offset_vel = LINEAR_VEL + ROBOT.WHEEL_SPACING*pid
+        else:
+            offset_vel = LINEAR_VEL + ROBOT.WHEEL_SPACING*pid 
 
         inpt = self.velocity_to_input(offset_vel, pid)
 

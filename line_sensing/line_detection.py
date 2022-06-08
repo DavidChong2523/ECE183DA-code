@@ -46,7 +46,7 @@ def test():
     SIZE = 25 # side length of sampled squares in pixels
     NUM_SAMPLES = 5
     readings, positions = sample(line_mask, SIZE, NUM_SAMPLES)
-
+    
     height_val = image.shape[0]//2
     for p in positions:
         cv2.rectangle(image, (p-SIZE//2, height_val-SIZE//2), (p+SIZE//2, height_val+SIZE//2), (0, 0, 255), 5)

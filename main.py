@@ -6,6 +6,8 @@ from sim.inputs import FileInput, KeyboardInput, JoystickInput
 from sim.outputs import FileOutput, GraphOutput, AnimationOutput, NavigationOutput
 from sim.robots import NOPModel, KinematicsModel
 from sim.environment import LineEnv
+from matplotlib.colors import ListedColormap
+import seaborn as sns
 
 import cv2
 import pandas as pd
@@ -42,11 +44,11 @@ def standardSim():
     """
 
     noise_params = {
-        "dirt_prob": 0.5,
+        "dirt_prob": 0.0,
         "grass_prob": 0.0
     }
     robot_noise = {
-        "trans_noise": 0.1,
+        "trans_noise": 0.0,
         "rot_noise": 0,
         "trans_mag": 1,
         "rot_mag": 0
@@ -66,9 +68,15 @@ def autoSim():
 
     out_df = pd.DataFrame()
 
-    dirt_vals = np.linspace(0, 0.6, num=10)
+    """
+    final testing:
+    dirt_vals = np.linspace(0, 1, num=10)
     grass_vals = np.linspace(0, 0.3, num=10)
     actuation_vals = np.linspace(0, 2.5, num=10)
+    """
+    dirt_vals = np.linspace(0, 1, num=1)
+    grass_vals = np.linspace(0.15, 0.3, num=1)
+    actuation_vals = np.linspace(0, 2.5, num=1)
     for d, g, a in itertools.product(dirt_vals, grass_vals, actuation_vals): 
         """
         env_noise_params = {
@@ -119,9 +127,10 @@ def autoSim():
             
         print("Noise area:", "%.2f" % d, "%.2f" % g, "%.2f" % a, "Average Straight Error:", "%.2f" % np.average(straight_errors), "Average Curve Error:", "%.2f" % np.average(curve_errors), "Percentage Success:", "%.2f" % percentage_success)
         out_df = out_df.append(pd.DataFrame({"dirt_mag": [d], "grass_mag": [g], "actuation_mag": [a], "straight_error": [np.average(straight_errors)], "curve_error": [np.average(curve_errors)], "percentage_success": [percentage_success]}), ignore_index=True)
-    #out_df.to_csv("test.csv")
+    #out_df.to_csv("test_2.csv")
     end = time.time()
     print("total time:", end-start)
+    print(out_df)
 
 def plot():
     out_df = pd.read_csv("test.csv")
@@ -139,37 +148,135 @@ def plot():
     plt.scatter(xvals, yvals)
     plt.show()
 
-def plot3d():
-    out_df = pd.read_csv("test.csv")
+def plot3d(out_df):
+    #out_df = pd.read_csv("test.csv")
     xvals, yvals, zvals = [], [], []
+    cvals = []
+    straight_error_vals = set()
+    curve_error_vals = set()
     for i, row in out_df.iterrows():
-        if(row["percentage_success:"] >= 0.8):
+        if(row["percentage_success"] > 0):
             xvals.append(row["dirt_mag"])
             yvals.append(row["grass_mag"])
             zvals.append(row["actuation_mag"])
-
+            cvals.append(row["percentage_success"])
+            straight_error_vals.add(row["straight_error"])
+            curve_error_vals.add(row["curve_error"])
+    print(max(straight_error_vals), min(straight_error_vals))
+    print(max(curve_error_vals), min(curve_error_vals))
     fig = plt.figure()
     ax = plt.axes(projection="3d")
     ax.set_xlabel("Dirt Area (Percent)")
     ax.set_ylabel("Grass Area (Percent)")
     ax.set_zlabel("Actuation Noise (in.)")
     ax.set_xlim(0, 1)
-    ax.set_ylim(0, 0.5)
-    ax.set_zlim(0, 1)
+    ax.set_ylim(0, 0.3)
+    ax.set_zlim(0, 2.5)
     ax.set_title("Successful Runs")
+    cmap = ListedColormap(['tab:brown', 'tab:gray', 'tab:purple', 'tab:blue', 'tab:cyan', 'tab:green', 'tab:olive', 'tab:orange', 'tab:pink', 'tab:red'])#'sns.color_palette("husl", 256).as_hex())
+    
     # plotting a scatter plot with X-coordinate,
     # Y-coordinate and Z-coordinate respectively
     # and defining the points color as cividis
     # and defining c as z which basically is a
     # defination of 2D array in which rows are RGB
     #or RGBA
-    ax.scatter3D(xvals, yvals, zvals, c=zvals, cmap='cividis')
+    sc = ax.scatter3D(xvals, yvals, zvals, c=cvals, cmap=cmap)#'cividis')
+
+    plt.legend(*sc.legend_elements(), bbox_to_anchor=(1.05, 1), loc=2)
+    
+    # Showing the above plot
+    #plt.show()
+
+def plot_errors():
+    out_df = pd.read_csv("test_2.csv")
+    xvals, yvals, zvals = [], [], []
+    cvals = []
+    for i, row in out_df.iterrows():
+        if(row["percentage_success"] > 0):
+            xvals.append(row["dirt_mag"])
+            yvals.append(row["grass_mag"])
+            zvals.append(row["actuation_mag"])
+            cvals.append(row["straight_error"])
+            #cvals.append(row["curve_error"])
+    fig = plt.figure()
+    ax = plt.axes(projection="3d")
+    ax.set_xlabel("Dirt Area (Percent)")
+    ax.set_ylabel("Grass Area (Percent)")
+    ax.set_zlabel("Actuation Noise (in.)")
+    ax.set_xlim(0, 0.6)
+    ax.set_ylim(0, 0.3)
+    ax.set_zlim(0, 2.5)
+    ax.set_title("Successful Runs")
+    colors = ['tab:brown', 'tab:gray', 'tab:purple', 'tab:blue', 'tab:cyan', 'tab:green', 'tab:olive', 'tab:orange', 'tab:pink', 'tab:red']
+    cmap = ListedColormap(colors[::-1])#'sns.color_palette("husl", 256).as_hex())
+    
+    # plotting a scatter plot with X-coordinate,
+    # Y-coordinate and Z-coordinate respectively
+    # and defining the points color as cividis
+    # and defining c as z which basically is a
+    # defination of 2D array in which rows are RGB
+    #or RGBA
+    sc = ax.scatter3D(xvals, yvals, zvals, c=cvals, cmap=cmap)#'cividis')
+
+    plt.legend(*sc.legend_elements(), bbox_to_anchor=(1.05, 1), loc=2)
     
     # Showing the above plot
     plt.show()
 
+
+def plot_errors():
+    out_df = pd.read_csv("test_2.csv")
+    xvals, yvals, zvals = [], [], []
+    cvals = []
+    for i, row in out_df.iterrows():
+        if(row["percentage_success"] > 0):
+            xvals.append(row["dirt_mag"])
+            yvals.append(row["grass_mag"])
+            zvals.append(row["actuation_mag"])
+            cvals.append(row["straight_error"])
+            #cvals.append(row["curve_error"])
+    fig = plt.figure()
+    ax = plt.axes(projection="3d")
+    ax.set_xlabel("Dirt Area (Percent)")
+    ax.set_ylabel("Grass Area (Percent)")
+    ax.set_zlabel("Actuation Noise (in.)")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 0.3)
+    ax.set_zlim(0, 2.5)
+    ax.set_title("Error during straight sections")
+    colors = ['tab:brown', 'tab:gray', 'tab:purple', 'tab:blue', 'tab:cyan', 'tab:green', 'tab:olive', 'tab:orange', 'tab:pink', 'tab:red']
+    cmap = ListedColormap(colors[::-1])#'sns.color_palette("husl", 256).as_hex())
+    
+    # plotting a scatter plot with X-coordinate,
+    # Y-coordinate and Z-coordinate respectively
+    # and defining the points color as cividis
+    # and defining c as z which basically is a
+    # defination of 2D array in which rows are RGB
+    #or RGBA
+    sc = ax.scatter3D(xvals, yvals, zvals, c=cvals, cmap=cmap)#'cividis')
+
+    plt.legend(*sc.legend_elements(), bbox_to_anchor=(1.05, 1), loc=2)
+    
+    # Showing the above plot
+    plt.show()
+
+
 if __name__ == "__main__":
-    #standardSim()
-    #autoSim()
-    #plot()
-    plot3d()
+    while(True):
+        key = input(">>>")
+        if(key == "s"):
+            standardSim()
+        elif(key == "a"):
+            autoSim()
+            #print("auto sim not active")
+        #elif(key == "x"):
+        #    plot()
+        elif(key == "x"):
+            plot3d(pd.read_csv("test.csv"))
+            plot3d(pd.read_csv("test_2.csv"))
+            plt.show()
+        elif(key == "y"):
+            plot_errors()
+        #plot3d()
+        #plot_errors()
