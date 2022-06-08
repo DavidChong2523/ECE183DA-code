@@ -49,7 +49,6 @@ def test():
         cv2.imshow('Webcam', frame)
 
 
-<<<<<<< HEAD
         # load image 
         #         image = cv2.imread("d1.jpg")
         #         print(image.shape)
@@ -69,16 +68,6 @@ def test():
         height_val = frame.shape[0]//2
         for p in positions:
             cv2.rectangle(frame, (p-SIZE//2, height_val-SIZE//2), (p+SIZE//2, height_val+SIZE//2), (0, 0, 255), 5)
-=======
-    # sample to get sensor readings
-    SIZE = 25 # side length of sampled squares in pixels
-    NUM_SAMPLES = 5
-    readings, positions = sample(line_mask, SIZE, NUM_SAMPLES)
-    
-    height_val = image.shape[0]//2
-    for p in positions:
-        cv2.rectangle(image, (p-SIZE//2, height_val-SIZE//2), (p+SIZE//2, height_val+SIZE//2), (0, 0, 255), 5)
->>>>>>> 821e48a40a69da4be34203ae66e81ff4799c910f
     
         # display mask
         print("Readings:", readings)
