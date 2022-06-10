@@ -172,7 +172,7 @@ def plot3d(out_df):
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 0.3)
     ax.set_zlim(0, 2.5)
-    ax.set_title("Successful Runs")
+    ax.set_title("Percentage of Trials Successful")
     cmap = ListedColormap(['tab:brown', 'tab:gray', 'tab:purple', 'tab:blue', 'tab:cyan', 'tab:green', 'tab:olive', 'tab:orange', 'tab:pink', 'tab:red'])#'sns.color_palette("husl", 256).as_hex())
     
     # plotting a scatter plot with X-coordinate,
@@ -225,8 +225,7 @@ def plot_errors():
     plt.show()
 
 
-def plot_errors():
-    out_df = pd.read_csv("test_2.csv")
+def plot_errors(out_df):
     xvals, yvals, zvals = [], [], []
     cvals = []
     for i, row in out_df.iterrows():
@@ -244,7 +243,7 @@ def plot_errors():
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 0.3)
     ax.set_zlim(0, 2.5)
-    ax.set_title("Error during straight sections")
+    ax.set_title("Average Error During Straight Sections")
     colors = ['tab:brown', 'tab:gray', 'tab:purple', 'tab:blue', 'tab:cyan', 'tab:green', 'tab:olive', 'tab:orange', 'tab:pink', 'tab:red']
     cmap = ListedColormap(colors[::-1])#'sns.color_palette("husl", 256).as_hex())
     
@@ -259,7 +258,7 @@ def plot_errors():
     plt.legend(*sc.legend_elements(), bbox_to_anchor=(1.05, 1), loc=2)
     
     # Showing the above plot
-    plt.show()
+    #plt.show()
 
 
 if __name__ == "__main__":
@@ -277,6 +276,8 @@ if __name__ == "__main__":
             plot3d(pd.read_csv("test_2.csv"))
             plt.show()
         elif(key == "y"):
-            plot_errors()
+            plot_errors(pd.read_csv("test.csv"))
+            plot_errors(pd.read_csv("test_2.csv"))
+            plt.show()
         #plot3d()
         #plot_errors()
